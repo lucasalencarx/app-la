@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<link rel="icon" type="image/png" href="favicon.ico">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LucasAlencar - Anotações</title>
+<link rel="icon" type="image/png" href="favicon.ico">
 
 <style>
 *{box-sizing:border-box}
@@ -130,7 +130,6 @@ input:focus, select:focus{
   box-shadow:0 0 0 2px rgba(76,175,80,0.2);
 }
 
-
 button{
   margin-top:10px;
   padding:14px;
@@ -140,45 +139,47 @@ button{
   cursor:pointer;
 }
 
-  input, select, textarea{
-  font-size:16px;
+button:first-of-type{
+  background:#4caf50;
+  color:white;
 }
-  
+
+button:last-of-type{
+  background:#334155;
+  color:white;
+}
+
+input, select, textarea{
+  font-size:16px; /* evita zoom no mobile */
+}
 </style>
 </head>
 
 <body>
 
-<!-- TOPO -->
 <div class="topbar">
   <span onclick="voltar()">⬅️</span>
   <h2>📝 Anotações</h2>
 </div>
 
 <div class="cards" id="lista"></div>
-
 <div class="fab" onclick="abrirModal()">+</div>
 
-<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="modal-content">
     <h3>Nova Anotação</h3>
-
     <input id="desc" placeholder="Descrição">
     <input type="date" id="data">
     <input type="time" id="hora">
-
     <select id="tipo">
       <option>Consulta médica</option>
       <option>Financeiro</option>
       <option>Pessoal</option>
     </select>
-
     <select id="urgencia">
       <option value="normal">Normal</option>
       <option value="urgente">Urgente</option>
     </select>
-
     <button onclick="salvar()">Salvar</button>
     <button onclick="fecharModal()">Cancelar</button>
   </div>
@@ -190,7 +191,6 @@ button{
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
 const firebaseConfig = {
   apiKey: "AIzaSyCMo-vkwF-mdi-E6jLbERNPnFitQOXigAo",
   authDomain: "apps-lucasalencar.firebaseapp.com",
@@ -213,141 +213,80 @@ const urgencia = document.getElementById('urgencia');
 
 let editId = null;
 
-/* VOLTAR */
 window.voltar = ()=> window.location.href="dashboard.html";
-
-/* MODAL */
 window.abrirModal = ()=> modal.classList.add('show');
+window.fecharModal = ()=> { modal.classList.remove('show'); desc.value=''; editId=null; }
 
-window.fecharModal = ()=>{
-  modal.classList.remove('show');
-  desc.value='';
-  editId = null;
-};
-
-/* SALVAR */
-window.salvar = async ()=>{
+window.salvar = async () => {
   if(!desc.value) return alert("Preencha a descrição");
-
-  const obj={
-    desc:desc.value,
-    data:data.value || "",
-    hora:hora.value || "",
-    tipo:tipo.value,
-    urgencia:urgencia.value,
-    status:'processo',
-    createdAt: new Date()
+  const obj = {
+    desc: desc.value,
+    data: data.value || "",
+    hora: hora.value || "",
+    tipo: tipo.value,
+    urgencia: urgencia.value,
+    status: 'processo',
+    createdAt: firebase.firestore.Timestamp.now() // ✅ Timestamp Firestore
   };
-
   try{
     if(editId){
       await db.collection("anotacoes").doc(editId).update(obj);
-    }else{
+    } else {
       await db.collection("anotacoes").add(obj);
     }
     fecharModal();
-  }catch(e){
+  } catch(e){
     alert("Erro ao salvar: " + e.message);
   }
-};
+}
 
-/* LISTAR REALTIME */
+// LISTAR REALTIME MOBILE/DESKTOP
 function escutar(){
   db.collection("anotacoes")
+    .orderBy("createdAt", "desc") // ✅ ordenação correta
     .onSnapshot(snapshot => {
-
       lista.innerHTML='';
-
-      const docs = [];
-
       snapshot.forEach(doc=>{
-        docs.push({ id: doc.id, ...doc.data() });
-      });
-
-      // ORDENA PELO createdAt
-      docs.sort((a,b)=>{
-        const d1 = a.createdAt?.seconds ? a.createdAt.seconds : 0;
-        const d2 = b.createdAt?.seconds ? b.createdAt.seconds : 0;
-        return d2 - d1;
-      });
-
-      docs.forEach(item=>{
-
+        const item = doc.data();
         if(item.status === 'finalizada') return;
-
         const card = document.createElement('div');
-        card.className = `card ${item.urgencia}`;
-
+        card.className = `card ${item.urgencia || 'normal'}`;
         card.innerHTML = `
           <b>${item.tipo}</b><br>
           📅 ${item.data || "-"} ⏰ ${item.hora || "-"}<br><br>
           ${item.desc}<br>
-
-          <button onclick="finalizar('${item.id}')">✔</button>
-          <button onclick="editar('${item.id}','${item.desc}','${item.data}','${item.hora}','${item.tipo}','${item.urgencia}')">✏️</button>
-          <button onclick="excluir('${item.id}')">🗑</button>
+          <button onclick="finalizar('${doc.id}')">✔</button>
+          <button onclick="editar('${doc.id}','${item.desc}','${item.data}','${item.hora}','${item.tipo}','${item.urgencia}')">✏️</button>
+          <button onclick="excluir('${doc.id}')">🗑</button>
         `;
-
         lista.appendChild(card);
       });
-
-    }, err=>{
-      alert("Erro realtime: " + err.message);
-    });
+    }, err => alert("Erro realtime: " + err.message));
 }
 
-/* FINALIZAR */
-window.finalizar = async (id)=>{
-  await db.collection("anotacoes").doc(id).update({
-    status: "finalizada"
-  });
-};
+window.finalizar = async (id) => { await db.collection("anotacoes").doc(id).update({status:"finalizada"}); }
+window.excluir = async (id) => { await db.collection("anotacoes").doc(id).delete(); }
+window.editar = (id,d,da,h,t,u) => { editId=id; desc.value=d; data.value=da; hora.value=h; tipo.value=t; urgencia.value=u; abrirModal(); }
 
-/* EXCLUIR */
-window.excluir = async (id)=>{
-  await db.collection("anotacoes").doc(id).delete();
-};
-
-/* EDITAR */
-window.editar = (id, d, da, h, t, u)=>{
-  editId = id;
-  desc.value = d;
-  data.value = da;
-  hora.value = h;
-  tipo.value = t;
-  urgencia.value = u;
-  abrirModal();
-};
-
-/* NOTIFICAÇÃO (corrigida mobile) */
+// NOTIFICAÇÃO MOBILE
 Notification.requestPermission();
-
 function verificarNotificacoes(){
   const agora = new Date();
-
   db.collection("anotacoes").get().then(snapshot=>{
     snapshot.forEach(doc=>{
       const item = doc.data();
-
       if(!item.data || !item.hora) return;
-
-      // 🔥 FORMATO CORRETO PRA MOBILE
       const dataHora = new Date(item.data + "T" + item.hora);
-
       const diff = dataHora - agora;
-
-      if(diff > 0 && diff < 3600000){
-        new Notification("⏰ Lembrete", {
-          body: item.desc + " às " + item.hora
-        });
+      if(diff>0 && diff<3600000){
+        new Notification("⏰ Lembrete",{body:item.desc + " às " + item.hora});
       }
     });
   });
 }
+setInterval(verificarNotificacoes,60000);
 
-setInterval(verificarNotificacoes, 60000);
-
-/* INIT */
+// INIT
 escutar();
 
 });
