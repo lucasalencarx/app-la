@@ -218,13 +218,24 @@ window.salvar = async ()=>{
 /* REALTIME */
 function escutar(){
   db.collection("anotacoes")
-   
     .onSnapshot(snapshot => {
 
       lista.innerHTML='';
 
+      const docs = [];
+
       snapshot.forEach(doc=>{
-        const item = doc.data();
+        docs.push({ id: doc.id, ...doc.data() });
+      });
+
+      // 🔥 ORDENAR: MAIS RECENTE PRIMEIRO
+      docs.sort((a,b)=>{
+        const d1 = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0);
+        const d2 = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0);
+        return d2 - d1;
+      });
+
+      docs.forEach(item=>{
 
         if(item.status === 'finalizada') return;
 
@@ -233,12 +244,12 @@ function escutar(){
 
         card.innerHTML = `
           <b>${item.tipo}</b><br>
-          📅 ${item.data} ⏰ ${item.hora}<br><br>
+          📅 ${item.data || "-"} ⏰ ${item.hora || "-"}<br><br>
           ${item.desc}<br>
 
-          <button onclick="finalizar('${doc.id}')">✔</button>
-          <button onclick="editar('${doc.id}','${item.desc}','${item.data}','${item.hora}','${item.tipo}','${item.urgencia}')">✏️</button>
-          <button onclick="excluir('${doc.id}')">🗑</button>
+          <button onclick="finalizar('${item.id}')">✔</button>
+          <button onclick="editar('${item.id}','${item.desc}','${item.data}','${item.hora}','${item.tipo}','${item.urgencia}')">✏️</button>
+          <button onclick="excluir('${item.id}')">🗑</button>
         `;
 
         lista.appendChild(card);
