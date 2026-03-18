@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Controle de Estoque</title>
+
+<style>
+body{
+  font-family: Arial;
+  margin:0;
+  padding:20px;
+  background:#f5f5f5;
+}
+
+h1{
+  margin-bottom:20px;
+}
+
+.container{
+  max-width:800px;
+  margin:auto;
+}
+
+form{
+  background:white;
+  padding:15px;
+  border-radius:15px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
+  margin-bottom:20px;
+}
+
+input{
+  padding:8px;
+  margin:5px;
+}
+
+button{
+  padding:8px 15px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:#2ecc71;
+  color:white;
+}
+
+table{
+  width:100%;
+  background:white;
+  border-radius:15px;
+  overflow:hidden;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+th, td{
+  padding:10px;
+  text-align:center;
+}
+
+th{
+  background:#2ecc71;
+  color:white;
+}
+
+.sobra{
+  color:green;
+  font-weight:bold;
+}
+
+.falta{
+  color:red;
+  font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>🛒 Controle de Estoque Familiar</h1>
+
+<form onsubmit="adicionarItem(event)">
+  <input type="text" id="nome" placeholder="Nome do item" required>
+  <input type="number" id="mensal" placeholder="Consumo mensal" required>
+  <input type="number" id="atual" placeholder="Quantidade atual" required>
+  <button type="submit">Adicionar</button>
+</form>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Consumo Mensal</th>
+<th>Estoque Atual</th>
+<th>Sobra / Falta</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody id="lista"></tbody>
+</table>
+</div>
+
+<script>
+const API = "http://localhost:3000"
+
+async function carregar(){
+  const res = await fetch(API + "/estoque")
+  const data = await res.json()
+
+  const lista = document.getElementById("lista")
+  lista.innerHTML = ""
+
+  data.forEach(item=>{
+    let diferenca = item.quantidade_atual - item.consumo_mensal
+
+    lista.innerHTML += `
+      <tr>
+        <td>${item.nome}</td>
+        <td>${item.consumo_mensal}</td>
+        <td>${item.quantidade_atual}</td>
+        <td class="${diferenca >= 0 ? 'sobra' : 'falta'}">
+          ${diferenca >= 0 ? '+'+diferenca+' sobrando' : diferenca+' faltando'}
+        </td>
+        <td>
+          <button onclick="editar('${item.id}')">Editar</button>
+          <button onclick="remover('${item.id}')" style="background:#e74c3c">Excluir</button>
+        </td>
+      </tr>
+    `
+  })
+}
+
+async function adicionarItem(e){
+  e.preventDefault()
+
+  const nome = document.getElementById("nome").value
+  const mensal = document.getElementById("mensal").value
+  const atual = document.getElementById("atual").value
+
+  await fetch(API + "/estoque",{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      nome,
+      consumo_mensal:mensal,
+      quantidade_atual:atual
+    })
+  })
+
+  e.target.reset()
+  carregar()
+}
+
+async function remover(id){
+  await fetch(API + "/estoque/" + id,{
+    method:"DELETE"
+  })
+  carregar()
+}
+
+async function editar(id){
+  let nova = prompt("Nova quantidade:")
+  if(!nova) return
+
+  await fetch(API + "/estoque/" + id,{
+    method:"PUT",
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      quantidade_atual:nova
+    })
+  })
+  carregar()
+}
+
+carregar()
+</script>
+
+</body>
+</html>

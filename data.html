@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudo Backend NODEJS</title>
+</head>
+<body>
+    <script>
+
+const API = "http://localhost:3000";
+
+async function ListarDadosCadastrados(){
+    const res = await fetch(API+"/estoque"); // vai retornar dados // 
+    const data = await res.json(); // entao transforma a conversao em JSON
+console.log(data);
+}
+
+ const res = await fetch("http://localhost:3000/estoque", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      nome,
+      quantidade
+    })
+  })
+
+
+ListarDadosCadastrados();
+
+
+
+
+
+    </script>
+</body>
+</html>

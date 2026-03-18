@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inserir DATA</title>
+</head>
+<body>
+    
+    <input type="text" id="nome" placeholder="Nome do produto">
+<input type="number" id="quantidade" placeholder="Quantidade">
+<button onclick="inserir()">Inserir</button>
+
+<script>
+async function inserir() {
+  const nome = document.getElementById("nome").value
+  const quantidade = document.getElementById("quantidade").value
+
+// Pega os 2 dados digitados pelo usuario através do input //
+
+  const res = await fetch("http://localhost:3000/estoque", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      nome,
+      quantidade
+    })
+  })
+
+  const data = await res.json()
+  console.log(data)
+  alert("Produto inserido!")
+}
+</script>
+</body>
+</html>

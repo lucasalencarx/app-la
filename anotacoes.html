@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<link rel="icon" type="image/png" href="assets/images/favicon.ico">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LucasAlencar - Anotações</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  color:white;
+  padding:15px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+  background:rgba(255,255,255,0.05);
+  border-radius:12px;
+  backdrop-filter:blur(10px);
+  margin-bottom:15px;
+}
+
+.topbar span{
+  font-size:22px;
+  cursor:pointer;
+}
+
+.cards{
+  display:grid;
+  gap:12px;
+}
+
+.card{
+  background:#fff59d;
+  color:#000;
+  padding:14px;
+  border-radius:14px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.4);
+}
+
+.urgente{border-left:6px solid red}
+.normal{border-left:6px solid orange}
+
+button{
+  margin-top:10px;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  font-size:15px;
+  cursor:pointer;
+}
+
+.fab{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#4caf50;
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+  cursor:pointer;
+}
+
+.modal{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.4);
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  opacity:0;
+  pointer-events:none;
+  transition:0.3s;
+}
+
+.modal.show{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.modal-content{
+  background:#1e293b;
+  padding:20px;
+  width:100%;
+  max-width:500px;
+  border-radius:20px 20px 0 0;
+  transform:translateY(100%);
+  transition:0.35s;
+}
+
+.modal.show .modal-content{
+  transform:translateY(0);
+}
+
+input,select{
+  width:100%;
+  margin:8px 0;
+  padding:14px;
+  border-radius:12px;
+  border:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- TOPO -->
+<div class="topbar">
+  <span onclick="voltar()">⬅️</span>
+  <h2>📝 Anotações</h2>
+</div>
+
+<div class="cards" id="lista"></div>
+
+<div class="fab" onclick="abrirModal()">+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Nova Anotação</h3>
+
+    <input id="desc" placeholder="Descrição">
+    <input type="date" id="data">
+    <input type="time" id="hora">
+
+    <select id="tipo">
+      <option>Consulta médica</option>
+      <option>Financeiro</option>
+      <option>Pessoal</option>
+    </select>
+
+    <select id="urgencia">
+      <option value="normal">Normal</option>
+      <option value="urgente">Urgente</option>
+    </select>
+
+    <button onclick="salvar()">Salvar</button>
+    <button onclick="fecharModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCMo-vkwF-mdi-E6jLbERNPnFitQOXigAo",
+  authDomain: "apps-lucasalencar.firebaseapp.com",
+  projectId: "apps-lucasalencar",
+  storageBucket: "apps-lucasalencar.firebasestorage.app",
+  messagingSenderId: "382549257976",
+  appId: "1:382549257976:web:65dfdf7b094ed4b1e4d50d"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const modal = document.getElementById('modal');
+const lista = document.getElementById('lista');
+const desc = document.getElementById('desc');
+const data = document.getElementById('data');
+const hora = document.getElementById('hora');
+const tipo = document.getElementById('tipo');
+const urgencia = document.getElementById('urgencia');
+
+let editId = null;
+
+/* VOLTAR */
+window.voltar = ()=> window.location.href="dashboard.html";
+
+/* MODAL */
+window.abrirModal = ()=> modal.classList.add('show');
+
+window.fecharModal = ()=>{
+  modal.classList.remove('show');
+  desc.value='';
+  editId = null;
+};
+
+/* SALVAR / EDITAR */
+window.salvar = async ()=>{
+  const obj={
+    desc:desc.value,
+    data:data.value,
+    hora:hora.value,
+    tipo:tipo.value,
+    urgencia:urgencia.value,
+    status:'processo'
+  };
+
+  if(editId){
+    await db.collection("anotacoes").doc(editId).update(obj);
+  }else{
+    await db.collection("anotacoes").add(obj);
+  }
+
+  fecharModal();
+};
+
+/* REALTIME */
+function escutar(){
+  db.collection("anotacoes")
+    .orderBy("data")
+    .onSnapshot(snapshot => {
+
+      lista.innerHTML='';
+
+      snapshot.forEach(doc=>{
+        const item = doc.data();
+
+        if(item.status === 'finalizada') return;
+
+        const card = document.createElement('div');
+        card.className = `card ${item.urgencia}`;
+
+        card.innerHTML = `
+          <b>${item.tipo}</b><br>
+          📅 ${item.data} ⏰ ${item.hora}<br><br>
+          ${item.desc}<br>
+
+          <button onclick="finalizar('${doc.id}')">✔</button>
+          <button onclick="editar('${doc.id}','${item.desc}','${item.data}','${item.hora}','${item.tipo}','${item.urgencia}')">✏️</button>
+          <button onclick="excluir('${doc.id}')">🗑</button>
+        `;
+
+        lista.appendChild(card);
+      });
+
+    });
+}
+
+/* FINALIZAR */
+window.finalizar = async (id)=>{
+  await db.collection("anotacoes").doc(id).update({
+    status: "finalizada"
+  });
+};
+
+/* EXCLUIR */
+window.excluir = async (id)=>{
+  await db.collection("anotacoes").doc(id).delete();
+};
+
+/* EDITAR */
+window.editar = (id, d, da, h, t, u)=>{
+  editId = id;
+
+  desc.value = d;
+  data.value = da;
+  hora.value = h;
+  tipo.value = t;
+  urgencia.value = u;
+
+  abrirModal();
+};
+
+/* NOTIFICAÇÃO SIMPLES */
+Notification.requestPermission();
+
+function verificarNotificacoes(){
+  const agora = new Date();
+
+  db.collection("anotacoes").get().then(snapshot=>{
+    snapshot.forEach(doc=>{
+      const item = doc.data();
+      const dataHora = new Date(item.data + " " + item.hora);
+
+      const diff = dataHora - agora;
+
+      if(diff > 0 && diff < 3600000){
+        new Notification("⏰ Lembrete", {
+          body: item.desc + " às " + item.hora
+        });
+      }
+    });
+  });
+}
+
+setInterval(verificarNotificacoes, 60000);
+
+/* INIT */
+escutar();
+
+});
+</script>
+
+</body>
+</html>

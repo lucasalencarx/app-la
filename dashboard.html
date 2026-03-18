@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Premium</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #fff;
+    padding: 30px;
+  }
+
+  h1 {
+    margin-bottom: 30px;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 25px;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.06);
+    border-radius: 22px;
+    padding: 30px 15px;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: 0.4s;
+  }
+
+  .card:hover::before {
+    opacity: 1;
+  }
+
+  .card:hover {
+    transform: translateY(-8px) scale(1.04);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  }
+
+  .icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+
+  .card span {
+    font-size: 15px;
+    opacity: 0.9;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>🏠 Meu Painel</h1>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="icon">💳</div>
+    <span>Dívidas</span>
+  </div>
+
+
+
+  <div class="card">
+    <div class="icon">👥</div>
+    <span>Devedores</span>
+  </div>
+
+  <div class="card" onclick="irParaEstoque()">
+    <div class="icon">🛒</div>
+    <span>Mercado / Estoque</span>
+  </div>
+
+  <div class="card" onclick="irParaAnotacoes()">
+    <div class="icon">📝</div>
+    <span>Anotações Importantes</span>
+  </div>
+
+  <div class="card">
+    <div class="icon">📹</div>
+    <span>Monitoramento</span>
+  </div>
+
+  <div class="card">
+    <div class="icon">📈</div>
+    <span>Investimentos</span>
+  </div>
+
+  <div class="card">
+    <div class="icon">🏪</div>
+    <span>Conveniência</span>
+  </div>
+
+</div>
+
+<script>
+function irParaEstoque(){
+  window.location.href = "estoque.html";
+}
+
+function irParaAnotacoes(){
+  window.location.href = "anotacoes.html";
+}
+</script>
+
+</body>
+</html>
