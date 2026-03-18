@@ -195,27 +195,33 @@ window.fecharModal = ()=>{
   editId = null;
 };
 
-/* SALVAR / EDITAR */
+/* SALVAR */
 window.salvar = async ()=>{
+  if(!desc.value) return alert("Preencha a descrição");
+
   const obj={
     desc:desc.value,
-    data:data.value,
-    hora:hora.value,
+    data:data.value || "",
+    hora:hora.value || "",
     tipo:tipo.value,
     urgencia:urgencia.value,
-    status:'processo'
+    status:'processo',
+    createdAt: new Date()
   };
 
-  if(editId){
-    await db.collection("anotacoes").doc(editId).update(obj);
-  }else{
-    await db.collection("anotacoes").add(obj);
+  try{
+    if(editId){
+      await db.collection("anotacoes").doc(editId).update(obj);
+    }else{
+      await db.collection("anotacoes").add(obj);
+    }
+    fecharModal();
+  }catch(e){
+    alert("Erro ao salvar: " + e.message);
   }
-
-  fecharModal();
 };
 
-/* REALTIME */
+/* LISTAR REALTIME */
 function escutar(){
   db.collection("anotacoes")
     .onSnapshot(snapshot => {
@@ -228,10 +234,10 @@ function escutar(){
         docs.push({ id: doc.id, ...doc.data() });
       });
 
-      // 🔥 ORDENAR: MAIS RECENTE PRIMEIRO
+      // ORDENA PELO createdAt
       docs.sort((a,b)=>{
-        const d1 = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(0);
-        const d2 = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(0);
+        const d1 = a.createdAt?.seconds ? a.createdAt.seconds : 0;
+        const d2 = b.createdAt?.seconds ? b.createdAt.seconds : 0;
         return d2 - d1;
       });
 
@@ -255,6 +261,8 @@ function escutar(){
         lista.appendChild(card);
       });
 
+    }, err=>{
+      alert("Erro realtime: " + err.message);
     });
 }
 
@@ -273,17 +281,15 @@ window.excluir = async (id)=>{
 /* EDITAR */
 window.editar = (id, d, da, h, t, u)=>{
   editId = id;
-
   desc.value = d;
   data.value = da;
   hora.value = h;
   tipo.value = t;
   urgencia.value = u;
-
   abrirModal();
 };
 
-/* NOTIFICAÇÃO SIMPLES */
+/* NOTIFICAÇÃO (corrigida mobile) */
 Notification.requestPermission();
 
 function verificarNotificacoes(){
@@ -292,7 +298,11 @@ function verificarNotificacoes(){
   db.collection("anotacoes").get().then(snapshot=>{
     snapshot.forEach(doc=>{
       const item = doc.data();
-      const dataHora = new Date(item.data + " " + item.hora);
+
+      if(!item.data || !item.hora) return;
+
+      // 🔥 FORMATO CORRETO PRA MOBILE
+      const dataHora = new Date(item.data + "T" + item.hora);
 
       const diff = dataHora - agora;
 
